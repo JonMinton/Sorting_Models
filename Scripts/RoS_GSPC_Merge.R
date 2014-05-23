@@ -101,7 +101,7 @@ link <- paste("https://dl.dropboxusercontent.com/s",
 tmp <- tempfile()
 download.file(link, 
               destfile="ExcelFile.xlsx", method="curl",
-              userpwd = "jonathan.minton@glasgow.ac.uk:Foxhead00"
+              userpwd = ""
               )
 
 #read.xls(tmp, skip=2)
