@@ -54,5 +54,9 @@ write.csv(derived, file="Scottish_Stayer_Props/derived/ten_year_stayer_prop_all_
 # 65 plus
 
 
+# let's just produce a simple adjustment curve
+
+
+
 
 
