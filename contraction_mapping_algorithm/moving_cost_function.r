@@ -12,7 +12,7 @@ generate_moving_costs <- function(
 ){
     
     # Error checking
-    if (length(proportion_renting)!=length(medval)) stop("proprents and medval of different lengths")
+    if (length(proportion_renting)!=length(median_value)) stop("proprents and medval of different lengths")
     N <- length(proportion_renting)
     
     out <- matrix(nrow=N+1, ncol=N+1)
