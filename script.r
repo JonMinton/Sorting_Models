@@ -97,9 +97,52 @@ house_prices <- source_DropboxData(
 persons <- source_DropboxData(
     file="persons.csv",
     key="vcz7qngb44vbynq"
-    ) %>% tbl_df()
+    ) %>% 
+    tbl_df() %>%
+    select(datazone, year,
+           contains("hspeop")
+    )
 
-persons <- 
+names(persons) <- names(persons) %>%str_replace_all( "GR.hspeop", "count_both_")
+persons <- persons %>% gather(age_group, count, -datazone, -year)
+
+persons <- persons %>% mutate(gender="both", age_group=str_replace_all(age_group, "count_both_", ""))
+persons$age_group <- persons$age_group %>% revalue(
+    c(
+        "1619" = "16_19",
+        "2024" = "20_24",
+        "2529" = "25_29", 
+        "3034" = "30_34",
+        "3539" = "35_39",
+        "4044" = "40_44",
+        "4549" = "45_49",
+        "5054" = "50_54",
+        "5559" = "55_59",
+        "6064" = "60_64",
+        "6569" = "65_69",
+        "7074" = "70_74",
+        "7579" = "75_79",
+        "8084" = "80_84",
+        "85over" = "85_100"
+    )
+)
+
+# deal with "" separately as revalue can't cope
+persons$age_group[nchar(persons$age_group)==0] <- "all"
+
+fn <- function(x){
+    tmp <- str_split(x, "_") %>% ldply()
+    if (length(tmp)==2){
+        lower <- tmp[1] %>% as.numeric()
+        upper <- tmp[2] %>% as.numeric()
+        if (!is.na(lower) & !is.na(upper)){
+            out <- data.frame(lower=lower, upper=upper)
+        } else {out <- data.frame(lower=NA, upper=NA)}
+    } else {out <- data.frame(lower=NA, upper=NA)}
+    return(out)
+}
+
+lower_upper <- ldply(persons$age_group, fn)
 
 # Stayer probabilities: 
 # First pass: 
