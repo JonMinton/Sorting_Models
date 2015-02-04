@@ -13,6 +13,7 @@ require(dplyr)
 require(stringr)
 require(tidyr)
 require(ggplot2)
+require(quantreg)
 
 # functions
 sourceCpp("contraction_mapping_algorithm/contraction_mapping_algorithm_in_cpp.cpp")
@@ -524,7 +525,7 @@ load("Results_White_lower.Rdata")
 
 # Quantile regression in R
 
-require(quantreg)
+
 
 deltas_to_use <- outputs_final$deltas
 attach(Data012)
