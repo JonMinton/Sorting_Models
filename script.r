@@ -130,11 +130,9 @@ persons$age_group <- persons$age_group %>% revalue(
 # deal with "" separately as revalue can't cope
 persons$age_group[nchar(persons$age_group)==0] <- "all"
 
-<<<<<<< HEAD
 
 # This runs horrifically slowly - look at alternative ways of writing it
-=======
->>>>>>> 8d4fcd6e3c4be7f95211c35345c61bcb608dcdc3
+
 fn <- function(x){
     tmp <- str_split(x, "_") %>% ldply()
     if (length(tmp)==2){
