@@ -1,4 +1,0 @@
-load("/Users/JonMinton/Google Drive/PROJECTS/Sorting Models/SortingModelRcpp/Contraction_Mapping_Three_Stage__2014_04_16.rData")
-load("/Users/JonMinton/Google Drive/PROJECTS/Sorting Models/SortingModelRcpp/Contraction_Mapping_refined__14_04_14.Rdata")
-ls()
-plot(density(outputs2$deltas))

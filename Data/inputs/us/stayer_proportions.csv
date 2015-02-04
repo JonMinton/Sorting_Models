@@ -1,0 +1,16 @@
+race,income_level,stayer_proportion
+white,low,0.4174
+black,low,0.3254
+asian,low,0.2808
+hispanic,low,0.2892
+other,low,0.2687
+white,medium,0.4082
+black,medium,0.3933
+asian,medium,NA
+hispanic,medium,NA
+other,medium,NA
+white,high,NA
+black,high,NA
+asian,high,NA
+hispanic,high,NA
+other,high,NA
