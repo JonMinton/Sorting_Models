@@ -97,10 +97,10 @@ house_prices <- source_DropboxData(
 # generate_persons_by_gender_age_and_year.r
 # to reproduce from SNS files
 
-persons <- source_DropboxData(
-    file="persons_by_gender_year_and_age.csv",
-    key="p134pw625yd4f80"
-    ) %>% tbl_df()
+# persons <- source_DropboxData(
+#     file="persons_by_gender_year_and_age.csv",
+#     key="p134pw625yd4f80"
+#     ) %>% tbl_df()
 
 
 
@@ -129,6 +129,8 @@ households <- households_2001 %>% bind_rows(households_2011)
 
 rm(households_2001, households_2011)
 
+
+
 # Indirect appraoch would be to estimate it based on number of persons
 # Assuming number of persons stays constant over time. 
 
@@ -138,30 +140,31 @@ rm(households_2001, households_2011)
 #  - the median age in Scotland in 2001 was 38
 #  - the estimated 10 year stayer proportion for this group is 0.82
 prent <- tenure_households %>%
-    select(owned) %>%
-    transmute(rented = 1 - owned)
-prent <- prent$rented
+    select(datazone, owned) %>%
+    mutate(rented = 1 - owned)
     
 medval <- house_prices %>%
     filter(year==2001) %>%
-    select(median) %>% 
+    select(datazone, median) %>% 
     mutate(median=ifelse(median==0,68000, median))  # replace 0 values from no sales with national median value of 68000
-medval <- medval$median
 
+for_mapping <- prent %>% inner_join(medval)
+
+household_t1t2 <- households %>% 
+    filter(year==2001 | year ==2011) %>%
+    spread(year, all_households)
+
+names(household_t1t2)[2:3] <- c("t1", "t2")
+for_mapping <- for_mapping %>% inner_join(household_t1t2)
 
 moving_costs_matrix <- generate_moving_costs(
-    proportion_renting=prent,
-    median_value=medval
+    proportion_renting=for_mapping$rented,
+    median_value=for_mapping$median
 )
 
 ###################################################################################################################################
 # Input structure for Rcpp
 ###################################################################################################################################
-oldcnts <- households %>% filter(year==2001) %>% select(all_households)
-oldcnts <- oldcnts$all_households
-
-newcnts <- households %>% filter(year==2011) %>% select(all_households)
-newcnts <- newcnts$all_households
 
 ## Issue _ different number of datazones : 6505 for old and 6500 for new
 
@@ -169,13 +172,13 @@ In <- list(
     data = list(
         stayerprop= 0.82,
         counts = list(
-            oldcounts=oldcnts ,
-            newcounts=newcnts      
+            oldcounts=for_mapping$t1 ,
+            newcounts=for_mapping$t2
         )
     ),
     movingcostmatrix = moving_costs_matrix,
     utils = list(
-        deltas = rep(0, length(oldcnts) + 1) # Added one for outside region
+        deltas = rep(0, length(for_mapping$t1) + 1) # Added one for outside region
     ),
     params = list(
         tol_delta = 10^-2,
@@ -193,7 +196,7 @@ In <- list(
     )
 )
 
-rm(moving_costs_matrix)
+#rm(moving_costs_matrix)
 
 x <- new(Contraction, In)
 
