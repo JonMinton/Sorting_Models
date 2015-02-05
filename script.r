@@ -1,7 +1,7 @@
 # tidier script for running contraction mapping algorithm as part of Timmins' structural sorting models
 
 # Jon Minton
-# 4/2/2015
+# 5/2/2015
 
 
 rm(list=ls())
@@ -92,67 +92,117 @@ house_prices <- source_DropboxData(
 
 # Population counts
 
-# by individual or by household?
+
+# Derived data: see script 
+# generate_persons_by_gender_age_and_year.r
+# to reproduce from SNS files
 
 persons <- source_DropboxData(
-    file="persons.csv",
-    key="vcz7qngb44vbynq"
-    ) %>% 
-    tbl_df() %>%
-    select(datazone, year,
-           contains("hspeop")
-    )
-
-names(persons) <- names(persons) %>%str_replace_all( "GR.hspeop", "count_both_")
-persons <- persons %>% gather(age_group, count, -datazone, -year)
-
-persons <- persons %>% mutate(gender="both", age_group=str_replace_all(age_group, "count_both_", ""))
-persons$age_group <- persons$age_group %>% revalue(
-    c(
-        "1619" = "16_19",
-        "2024" = "20_24",
-        "2529" = "25_29", 
-        "3034" = "30_34",
-        "3539" = "35_39",
-        "4044" = "40_44",
-        "4549" = "45_49",
-        "5054" = "50_54",
-        "5559" = "55_59",
-        "6064" = "60_64",
-        "6569" = "65_69",
-        "7074" = "70_74",
-        "7579" = "75_79",
-        "8084" = "80_84",
-        "85over" = "85_100"
-    )
-)
-
-# deal with "" separately as revalue can't cope
-persons$age_group[nchar(persons$age_group)==0] <- "all"
+    file="persons_by_gender_year_and_age.csv",
+    key="p134pw625yd4f80"
+    ) %>% tbl_df()
 
 
-# This runs horrifically slowly - look at alternative ways of writing it
 
-fn <- function(x){
-    tmp <- str_split(x, "_") %>% ldply()
-    if (length(tmp)==2){
-        lower <- tmp[1] %>% as.numeric()
-        upper <- tmp[2] %>% as.numeric()
-        if (!is.na(lower) & !is.na(upper)){
-            out <- data.frame(lower=lower, upper=upper)
-        } else {out <- data.frame(lower=NA, upper=NA)}
-    } else {out <- data.frame(lower=NA, upper=NA)}
-    return(out)
-}
+################
 
-lower_upper <- ldply(persons$age_group, fn)
+# Number of households only available for 2001
+# Want to know it for 2011 as well
+
+# Answer: use 2011 census table
+
+households_2011 <- source_DropboxData(
+    file = "QS116SC.csv",
+    key="hb0phfnf38c5si3"
+    ) %>% tbl_df() %>%
+    select(datazone=X, all_households=All.households) %>%
+    filter(grepl("^S01", datazone)) 
+
+households_2011 <- households_2011 %>% 
+    mutate(year=2011) %>%
+    select(datazone, year, all_households)
+
+households_2001 <- tenure_households %>% 
+    select(datazone, year, all_households)
+
+households <- households_2001 %>% bind_rows(households_2011)
+
+rm(households_2001, households_2011)
+
+# Indirect appraoch would be to estimate it based on number of persons
+# Assuming number of persons stays constant over time. 
+
 
 # Stayer probabilities: 
 # First pass: 
 #  - the median age in Scotland in 2001 was 38
 #  - the estimated 10 year stayer proportion for this group is 0.82
+prent <- tenure_households %>%
+    select(owned) %>%
+    transmute(rented = 1 - owned)
+prent <- prent$rented
+    
+medval <- house_prices %>%
+    filter(year==2001) %>%
+    select(median) %>% 
+    mutate(median=ifelse(median==0,68000, median))  # replace 0 values from no sales with national median value of 68000
+medval <- medval$median
 
 
+moving_costs_matrix <- generate_moving_costs(
+    proportion_renting=prent,
+    median_value=medval
+)
+
+###################################################################################################################################
+# Input structure for Rcpp
+###################################################################################################################################
+oldcnts <- households %>% filter(year==2001) %>% select(all_households)
+oldcnts <- oldcnts$all_households
+
+newcnts <- households %>% filter(year==2011) %>% select(all_households)
+newcnts <- newcnts$all_households
+
+## Issue _ different number of datazones : 6505 for old and 6500 for new
+
+In <- list(
+    data = list(
+        stayerprop= 0.82,
+        counts = list(
+            oldcounts=oldcnts ,
+            newcounts=newcnts      
+        )
+    ),
+    movingcostmatrix = moving_costs_matrix,
+    utils = list(
+        deltas = rep(0, length(oldcnts) + 1) # Added one for outside region
+    ),
+    params = list(
+        tol_delta = 10^-2,
+        tol_mu = 10^-1,
+        mu_upper = 0.50,
+        mu_lower = 0,
+        maxit_outer = 1000,
+        maxit_inner = 100000,
+        use_logmu=F
+    ),
+    dbg = list(
+        dbgflag= T,
+        verboseflag=T
+        
+    )
+)
+
+rm(moving_costs_matrix)
+
+x <- new(Contraction, In)
+
+
+x$run()
+
+x$extractests() -> outputs
+
+rm(x)
 
 
 
