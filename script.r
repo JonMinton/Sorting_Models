@@ -196,7 +196,8 @@ In <- list(
     )
 )
 
-#rm(moving_costs_matrix)
+rm(moving_costs_matrix)
+gc()
 
 x <- new(Contraction, In)
 
