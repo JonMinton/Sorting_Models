@@ -2,3 +2,5 @@
 .Rhistory
 .RData
 packrat/lib*/
+moving_cost_estimation/outputs_generated/*
+
